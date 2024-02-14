@@ -19,7 +19,7 @@ The script will also update the internal metadata of the .h5 files to reflect th
 The script will also update the .nxs and .run files to reflect the new prefix.
 '''
 
-import h5py
+#import h5py
 import os
 
 def find_files_with_prefix(directory, prefix):
