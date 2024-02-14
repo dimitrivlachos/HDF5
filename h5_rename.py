@@ -1,29 +1,8 @@
-'''
-A script to a set of files pertaining to a specific experiment. The files are in the form of .h5 files and are named in the following format:
-    - '{prefix}.run'
-    - '{prefix}_1.nxs'
-    - '{prefix}_1_000001.h5'
-    - '{prefix}_1_header.cbf'
-    - '{prefix}_1_master.h5'
-    - '{prefix}_1_meta.h5'
-
-The script will rename the files to the following format:
-    - '{new prefix}.run'
-    - '{new prefix}_1.nxs'
-    - '{new prefix}_1_000001.h5'
-    - '{new prefix}_1_header.cbf'
-    - '{new prefix}_1_master.h5'
-    - '{new prefix}_1_meta.h5'
-
-The script will also update the internal metadata of the .h5 files to reflect the new prefix.
-The script will also update the .nxs and .run files to reflect the new prefix.
-'''
-
 import h5py
 import os
 
 def find_files_with_prefix(directory, prefix):
-    '''
+    """
     Find files in a directory that start with a specific prefix.
 
     Parameters
@@ -39,7 +18,7 @@ def find_files_with_prefix(directory, prefix):
 
     matching_files : list
         A list of files in the directory that start with the specified prefix.
-    '''
+    """
     matching_files = []
     try:
         with os.scandir(directory) as entries:
@@ -51,7 +30,7 @@ def find_files_with_prefix(directory, prefix):
     return matching_files
 
 def rename_files(directory, prefix, new_prefix, matching_files=None):
-    '''
+    """
     Rename files in a directory that start with a specific prefix.
 
     Parameters
@@ -69,27 +48,27 @@ def rename_files(directory, prefix, new_prefix, matching_files=None):
     -------
 
     None
-    '''
-    if matching_files is None:                      # If matching_files is not provided
+    """
+    if matching_files is None:  # If matching_files is not provided
         matching_files = find_files_with_prefix(directory, prefix)
 
-    for filename in matching_files:                 # Loop through the files
+    for filename in matching_files:  # Loop through the files
         try:
             new_filename = filename.replace(prefix, new_prefix)
-            os.rename(                                  # Rename the file
-                os.path.join(directory, filename),      # Old filename
-                os.path.join(directory, new_filename)   # New filename
-                )
+            os.rename(  # Rename the file
+                os.path.join(directory, filename),  # Old filename
+                os.path.join(directory, new_filename)  # New filename
+            )
             print(f"Renamed {filename} to {new_filename}")
-            
-            if filename.endswith('.h5'):                # If the file is an .h5 file
+
+            if filename.endswith('.h5'):  # If the file is an .h5 file
                 print(f"Updating metadata for {new_filename}")
                 update_h5_metadata(directory, new_prefix, new_filename)
         except OSError as e:
             print(f"Error renaming {filename}: {e}")
 
 def update_h5_metadata(directory, filename, new_filename):
-    '''
+    """
     Update the metadata of an .h5 file to reflect the new filename prefix.
 
     Parameters
@@ -107,15 +86,15 @@ def update_h5_metadata(directory, filename, new_filename):
     -------
 
     None
-    '''
+    """
 
     try:
         filename = os.path.join(directory, new_filename)
-        
-        with open(filename, 'rb') as f: # Open the file
-            header = f.read(80) # HDF5 header is usually within the first 80 bytes
+
+        with open(filename, 'rb') as f:  # Open the file
+            header = f.read(80)  # HDF5 header is usually within the first 80 bytes
             header_str = header.decode('ascii', errors='ignore')
-            
+
             if filename in header_str:
                 print(f"Found '{filename}' in file header: {header_str.strip()}")
                 # Update the header with the new filename prefix
