@@ -45,3 +45,32 @@ def find_files_with_prefix(directory, prefix):
         if filename.startswith(prefix):
             matching_files.append(filename)
     return matching_files
+
+def rename_files(directory, prefix, new_prefix):
+    '''
+    Rename files in a directory that start with a specific prefix.
+
+    Parameters
+    ----------
+    directory : str
+        The directory to search for files.
+
+    prefix : str
+        The prefix to search for.
+
+    new_prefix : str
+        The new prefix to rename the files to.
+
+    Returns
+    -------
+
+    None
+    '''
+    matching_files = find_files_with_prefix(directory, prefix)
+    
+    for filename in matching_files:                 # Loop through the files
+        new_filename = filename.replace(prefix, new_prefix)
+        os.rename(                                  # Rename the file
+            os.path.join(directory, filename),      # Old filename
+            os.path.join(directory, new_filename)   # New filename
+            )
