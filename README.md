@@ -2,13 +2,13 @@
 
 HDF5 utilities
 
+> **NB: No dependecies required as of now**
+
 > To install dependencies you require mamba:
 Please refer to the [mamba installation guide](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) for instructions on how to install mamba.
 
 Install dependencies using
 `conda create --name <env> --file requirements.txt`
-
-> **NB: No dependecies as of now**
 
 Activate mamba virtual environment using: `mamba activate /path/to/ENV/`
 
