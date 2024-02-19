@@ -84,8 +84,9 @@ def copy_hdf5_objects(source, target, file_mappings):
             target.copy(source[name], name)
             return
         elif source.get(name, getclass=True) is h5py.Group:
-            print(f"Creating group {name}")
-            target.create_group(name)
+            if not isinstance(source[name], h5py.ExternalLink):
+                print(f"Creating group {name}")
+                target.create_group(name)
 
             # Manually walk through group to find external links
             group = source[name]
@@ -95,13 +96,11 @@ def copy_hdf5_objects(source, target, file_mappings):
                 if isinstance(link, h5py.ExternalLink):
                     print(f"Found external link to {link.filename} at {link.path}")
                     # Create a new external link in the target file
-                    new_filename = file_mappings.get(link.filename)
-                    if new_filename is None:
-                        print(f"No mapping found for {link.filename}, skipping...")
-                        continue
-                    new_path = link.path.replace(link.filename, new_filename)
-                    print(f"Creating external link to {new_filename} at {new_path}")
-                    target[name] = h5py.ExternalLink(new_filename, new_path)
+                    if key not in target[name]:
+                        new_filename = file_mappings.get(link.filename)
+                        new_path = link.path.replace(link.filename, new_filename)
+                        print(f"Creating external link to {new_filename} at {new_path}")
+                        target[key] = h5py.ExternalLink(new_filename, new_path)
 
     source.visit(copy)
 
