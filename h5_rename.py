@@ -56,9 +56,9 @@ def find_files_with_prefix(directory: str, prefix: str) -> List[str]:
         print(f"Error: {e}")
     return matching_files
 
-def copy_hdf5_objects(source, target, file_mappings):
+def hdf5_local_copy(source, target, file_mappings):
     """
-    Copy HDF5 objects from a source file to a target file.
+    Copy all local contents of an HDF5 file to another HDF5 file.
 
     Parameters
     ----------
@@ -88,23 +88,36 @@ def copy_hdf5_objects(source, target, file_mappings):
                 print(f"Creating group {name}")
                 target.create_group(name)
 
-            # Manually walk through group to find external links
-            group = source[name]
-            for key in group:
-                print(f"Checking {key} in {name}")
-                link = group.get(key, getlink=True)
-                if isinstance(link, h5py.ExternalLink):
-                    print(f"Found external link to {link.filename} at {link.path}")
-                    # Create a new external link in the target file
-                    if key not in target[name]:
-                        new_filename = file_mappings.get(link.filename)
-                        new_path = link.path.replace(link.filename, new_filename)
-                        print(f"Creating external link to {new_filename} at {new_path}")
-                        target[key] = h5py.ExternalLink(new_filename, new_path)
-
     source.visit(copy)
 
-def remap_external_links(directory: str, file: str, file_mappings: dict) -> None:
+def hdf5_externallink_remap(source, target, file_mappings):
+    """
+    Remap all external links in an HDF5 file to point to new files.
+    """
+    def update_link(name):
+        print(f"Visiting {name}")
+        if source.get(name, getclass=True) is h5py.Dataset:
+            print(f"Skipping {name} because it is a dataset")
+            return
+
+        # Manually walk through group to find external links
+        group = source[name]
+        for key in group:
+            print(f"Checking {key} in {name}")
+            link = group.get(key, getlink=True)
+            if isinstance(link, h5py.ExternalLink):
+                print(f"Found external link to {link.filename} at {link.path}")
+                # Create a new external link in the target file
+                if key not in target[name]:
+                    new_filename = file_mappings.get(link.filename)
+                    new_path = link.path.replace(link.filename, new_filename)
+                    print(f"Creating external link to {new_filename} at {new_path}")
+                    target[key] = h5py.ExternalLink(new_filename, new_path)
+
+    source.visit(update_link)
+
+
+def hdf5_external_copy(directory: str, file: str, file_mappings: dict) -> None:
     """
     Given an HDF5 file, returns the filenames of all external links.
     
@@ -131,9 +144,10 @@ def remap_external_links(directory: str, file: str, file_mappings: dict) -> None
 
         new_file_path = os.path.join(directory, new_filename)
         with h5py.File(new_file_path, "w") as target:
-            copy_hdf5_objects(source, target, file_mappings)
+            hdf5_local_copy(source, target, file_mappings)
+            
 
-def rename_file(directory: str, file: str, file_mappings: dict) -> None:
+def rename_file_batch(directory: str, file: str, file_mappings: dict) -> None:
     print(file)
     print(file_mappings)
     print(f"Renaming file: {file} -> {file_mappings[file]}")
@@ -142,9 +156,15 @@ def rename_file(directory: str, file: str, file_mappings: dict) -> None:
     if file.endswith(".h5") or file.endswith(".nxs"):      
         # Try remapping the external links
         try:
-            remap_external_links(directory, file, file_mappings)
+            hdf5_external_copy(directory, file, file_mappings)
         except OSError as e:
             print(f"Error remapping links: {e}")
+    else:
+        # Rename the file
+        try:
+            os.rename(os.path.join(directory, file), os.path.join(directory, file_mappings[file]))
+        except OSError as e:
+            print(f"Error renaming file: {e}")
 
 if __name__ == "__main__":
     # Dict storing old names and new names
@@ -195,7 +215,7 @@ if __name__ == "__main__":
         print("Renaming files...")
         # Rename the files
         for file in file_mappings.keys():
-            rename_file(directory, file, file_mappings)
+            rename_file_batch(directory, file, file_mappings)
         print("Files renamed, links updated.")
     else:
         print("Rename cancelled. Exiting..")
