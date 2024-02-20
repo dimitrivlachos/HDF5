@@ -19,10 +19,12 @@ The script will also update the internal metadata of the .h5 files to reflect th
 The script will also update the .nxs and .run files to reflect the new prefix.
 '''
 
-#import h5py
+from argparse import ArgumentParser
+import h5py
 import os
+from typing import List
 
-def find_files_with_prefix(directory, prefix):
+def find_files_with_prefix(directory: str, prefix: str) -> List[str]:
     """
     Find files in a directory that start with a specific prefix.
 
@@ -40,8 +42,12 @@ def find_files_with_prefix(directory, prefix):
     matching_files : list
         A list of files in the directory that start with the specified prefix.
     """
+    print(f"Searching for files with prefix: {prefix} in directory: {directory}")
+    
     matching_files = []
     try:
+        # Use os.scandir() to get a list of files in the directory
+        # This is more efficient than os.listdir() as it returns an iterator
         with os.scandir(directory) as entries:
             for entry in entries:
                 if entry.name.startswith(prefix):
@@ -50,105 +56,141 @@ def find_files_with_prefix(directory, prefix):
         print(f"Error: {e}")
     return matching_files
 
-def rename_files(directory, prefix, new_prefix, matching_files=None):
+def search_and_replace(source: h5py.Group, file_mappings: dict) -> None:
     """
-    Rename files in a directory that start with a specific prefix.
+    Recursively search through an HDF5 file and replace the old prefix with the new prefix.
+
+    Parameters
+    ----------
+    source : h5py.Group
+        The root group of the HDF5 file to search through.
+
+    file_mappings : dict
+        A dictionary containing the old file names as keys and the new file names as values.
+
+    Returns
+    -------
+    None
+    """
+    print(f"Searching for external links in {source.filename}")
+
+    def _visit(name):
+        # visit() will only return hardlink Datasets and Groups, non-recursively
+        if source.get(name, getclass=True) is h5py.Dataset:
+            return
+        # We need to manually walk this group to check for external links
+        group = source[name]
+        for key in group:
+            link = group.get(key, getlink=True)
+            if isinstance(link, h5py.ExternalLink):
+                # Check if the file is in the mapping
+                if link.filename in file_mappings:
+                    # Replace the old prefix with the new prefix
+                    new_filename = file_mappings[link.filename]
+                    new_path = link.path.replace(link.filename, new_filename)
+                    # Update the link
+                    del group[key]
+                    group[key] = h5py.ExternalLink(file_mappings[link.filename], link.path)
+                    
+    source.visit(_visit)
+
+def fix_external_links(directory: str, file_mappings: dict) -> None:
+    """
+    Searches files for external links, deletes the old links and replaces them with new links.
 
     Parameters
     ----------
     directory : str
         The directory to search for files.
 
-    prefix : str
-        The prefix to search for.
-
-    new_prefix : str
-        The new prefix to rename the files to.
+    file_mappings : dict
+        A dictionary containing the old file names as keys and the new file names as values.
 
     Returns
     -------
-
     None
     """
-    if matching_files is None:  # If matching_files is not provided
-        matching_files = find_files_with_prefix(directory, prefix)
+    print(f"Fixing external links in directory: {directory}")
+    
+    for file in file_mappings.keys():
+        if not file.endswith(".h5") and not file.endswith(".nxs"):
+            continue # Skip files that are not .h5 or .nxs files
+        print(f"Fixing external links in {file}")
+        file_path = os.path.join(directory, file_mappings[file])
+        with h5py.File(file_path, "r+") as f:
+            search_and_replace(f, file_mappings)
 
-    for filename in matching_files:  # Loop through the files
-        try:
-            new_filename = filename.replace(prefix, new_prefix)
-            os.rename(  # Rename the file
-                os.path.join(directory, filename),  # Old filename
-                os.path.join(directory, new_filename)  # New filename
-            )
-            print(f"Renamed {filename} to {new_filename}")
-
-            if filename.endswith('.h5'):  # If the file is an .h5 file
-                print(f"Updating metadata for {new_filename}")
-                update_h5_metadata(directory, new_prefix, new_filename)
-        except OSError as e:
-            print(f"Error renaming {filename}: {e}")
-
-def update_h5_metadata(directory, filename, new_filename):
+def batch_rename(directory: str, file_mappings: dict) -> None:
     """
-    Update the metadata of an .h5 file to reflect the new filename prefix.
+    Rename a set of files in a directory.
 
     Parameters
     ----------
     directory : str
-        The directory where the .h5 file is located.
+        The directory containing the files to rename.
 
-    filename : str
-        The filename of the .h5 file to update.
-
-    new_filename : str
-        The new filename to update the .h5 file to.
-
-    Returns
-    -------
-
-    None
+    file_mappings : dict
+        A dictionary containing the old file names as keys and the new file names as values.
     """
-
-    try:
-        filename = os.path.join(directory, new_filename)
-
-        with open(filename, 'rb') as f:  # Open the file
-            header = f.read(80)  # HDF5 header is usually within the first 80 bytes
-            header_str = header.decode('ascii', errors='ignore')
-
-            if filename in header_str:
-                print(f"Found '{filename}' in file header: {header_str.strip()}")
-                # Update the header with the new filename prefix
-                header_str = header_str.replace(filename, new_filename)
-                with open(filename, 'wb') as f:
-                    f.write(header_str.encode('ascii', errors='ignore'))
-                    print(f"Updated file header to: {header_str.strip()}")
-    except (OSError, IOError) as e:
-        print(f"Error updating metadata for {new_filename}: {e}")
+    for old_name, new_name in file_mappings.items():
+        old_path = os.path.join(directory, old_name)
+        new_path = os.path.join(directory, new_name)
+        try:
+            os.rename(old_path, new_path)
+        except OSError as e:
+            print(f"Error: {e}")
 
 if __name__ == "__main__":
-    import sys
+    # Dict storing old names and new names
+    file_mappings = {}
 
-    # Check if directory, prefix, and new prefix were provided as arguments
-    if len(sys.argv) < 4:
-        # Ask for directory, prefix, and new prefix
-        directory = input("Enter the directory: ")
-        prefix = input("Enter the prefix: ")
-        new_prefix = input("Enter the new prefix: ")
-    else:
-        # Use the provided arguments
-        directory = sys.argv[1]
-        prefix = sys.argv[2]
-        new_prefix = sys.argv[3]
+    # Parse the command line arguments
+    parser = ArgumentParser(
+        description="Rename a set of files with a given prefix"
+        )
+    parser.add_argument(
+        "directory", 
+        help="The directory containing the files", metavar="DIRECTORY"
+        )
+    parser.add_argument(
+        "prefix", 
+        help="The prefix to search for", metavar="PREFIX"
+        )
+    parser.add_argument(
+        "new_prefix", 
+        help="The new prefix to rename the files to", metavar="NEW_PREFIX"
+        )
+    args = parser.parse_args()
 
+    # Get the command line arguments
+    directory = args.directory
+    prefix = args.prefix
+    new_prefix = args.new_prefix
+
+    # Find the files with the specified prefix
     matching_files = find_files_with_prefix(directory, prefix)
 
-    # Print the matching files and ask for confirmation
-    print(f"Found matching files: {matching_files}")
-    confirm = input("Do you want to rename these files? (y/n): ")
-    if confirm.lower() != 'y':
-        print("Rename cancelled. Exiting..")
-        sys.exit(0)
+    if not matching_files:
+        print(f"No files found with prefix: {prefix}")
+        exit(1)
 
-    # Call the rename_files function
-    rename_files(directory, prefix, new_prefix, matching_files=matching_files)
+    # Generate a mapping of old names to new names
+    for file in matching_files:
+        # Generate the new name
+        updated_name = file.replace(prefix, new_prefix)
+        file_mappings[file] = updated_name
+
+    # Print the matching files and ask for confirmation
+    print("Found matching files:")
+    for old_name, new_name in file_mappings.items():
+        print(f"{old_name.ljust(20)}->\t{new_name}")
+    confirm = input("Do you want to rename these files? (Y/n): ")
+    if confirm.lower() != 'n':
+        print("Renaming files...")
+        # Rename the files
+        batch_rename(directory, file_mappings)
+        # Fix the external links
+        fix_external_links(directory, file_mappings)
+        print("Files renamed, links updated.")
+    else:
+        print("Rename cancelled. Exiting..")
