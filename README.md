@@ -37,8 +37,14 @@ This script allows you to rename files in a directory that start with a specific
     This will find and prompt for confirmation to rename all files in the specified directory that start with `_b99` 
     
     ```bash
-    Found matching files: ['_b99.run', '_b99_1.nxs', _b99_1_000001.h5', '_b99_1_header.cbf', '_b99_1_master.h5', '_b99_1_meta.h5']
-    Do you want to rename these files? (y/n): 
+    Found matching files:
+    _b99.run            ->  test1.run
+    _b99_1.nxs          ->  test1_1.nxs
+    _b99_1_000001.h5    ->  test1_1_000001.h5
+    _b99_1_header.cbf   ->  test1_1_header.cbf
+    _b99_1_master.h5    ->  test1_1_master.h5
+    _b99_1_meta.h5      ->  test1_1_meta.h5
+    Do you want to rename these files? (Y/n): 
     ````
     
     Upon confirmation, `_b99` will be replaced with `experiment1` as the new prefix. **It will also update the metadata of any .h5 files to reflect the new filename prefix**.
@@ -49,17 +55,3 @@ This script allows you to rename files in a directory that start with a specific
     > 'experiment1_1_header.cbf'<br>
     > 'experiment1_1_master.h5'<br>
     > 'experiment1_1_meta.h5'<br>
-
-    `experiment1_1_master.h5` header:
-    >HDF5 "experiment1_1_master.h5" {<br>
-    >&nbsp;&nbsp;&nbsp;&nbsp;
-    GROUP "/" {<br>
-    >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    GROUP "entry" {<br>
-    >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    ATTRIBUTE "NX_class" {<br>
-    >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    DATATYPE  H5T_STRING {<br>
-    >...
-
-> Note: If you do not provide the directory, prefix, and new prefix as command-line arguments, the script will prompt you to enter them interactively.
