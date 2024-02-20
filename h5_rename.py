@@ -72,8 +72,6 @@ def search_and_replace(source: h5py.Group, file_mappings: dict) -> None:
     -------
     None
     """
-    print(f"Searching for external links in {source.filename}")
-
     def _visit(name):
         # visit() will only return hardlink Datasets and Groups, non-recursively
         if source.get(name, getclass=True) is h5py.Dataset:
@@ -109,13 +107,10 @@ def fix_external_links(directory: str, file_mappings: dict) -> None:
     Returns
     -------
     None
-    """
-    print(f"Fixing external links in directory: {directory}")
-    
+    """    
     for file in file_mappings.keys():
         if not file.endswith(".h5") and not file.endswith(".nxs"):
             continue # Skip files that are not .h5 or .nxs files
-        print(f"Fixing external links in {file}")
         file_path = os.path.join(directory, file_mappings[file])
         with h5py.File(file_path, "r+") as f:
             search_and_replace(f, file_mappings)
