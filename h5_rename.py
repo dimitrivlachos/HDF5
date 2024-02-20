@@ -74,16 +74,16 @@ def duplicate_hdf5(source: h5py.Group, target: h5py.Group) -> None:
     """
     # Recursively copy the objects from the source to the target
     def copy(name):
-        print(f"Visiting {name}")
+        #print(f"Visiting {name}")
         # If the object is a dataset, copy it to the target
         if source.get(name, getclass=True) is h5py.Dataset:
-            print(f"Copying {name} as dataset")
+            #print(f"Copying {name} as dataset")
             target.copy(source[name], name)
             return
         # If the object is a group, create it in the target
         elif source.get(name, getclass=True) is h5py.Group:
             if not isinstance(source[name], h5py.ExternalLink):
-                print(f"Creating group {name}")
+                #print(f"Creating group {name}")
                 target.create_group(name)
 
                 # Then copy attributes
@@ -98,11 +98,11 @@ def update_external_links(source: h5py.Group, target: h5py.Group, file_mappings:
     Remap all external links in an HDF5 file to point to new files.
     """
     def update_link(name):
-        print(f"Visiting {name}")
         # If the object is a dataset, skip it
         if source.get(name, getclass=True) is h5py.Dataset:
-            print(f"Skipping {name} because it is a dataset")
+            #print(f"Skipping {name} because it is a dataset")
             return
+        print(f"Updating {name}")
 
         # Manually walk through group to find external links
         group = source[name]
@@ -139,7 +139,7 @@ def duplicate_wrapper(directory: str, file: str, file_mappings: dict) -> None:
     -------
     None
     """
-    print(f"Remapping external links in file: {file}")
+    print(f"Duplicating file: {file}")
 
     file_path = os.path.join(directory, file)
 
@@ -195,7 +195,7 @@ def rename_file_batch(directory: str, file_mappings: dict) -> None:
             try:
                 # Duplicate the file and store it in the list for updating links later
                 duplicate_wrapper(directory, file, file_mappings)
-                files_to_update_links.append(file_mappings[file])
+                files_to_update_links.append(file)
             except OSError as e:
                 print(f"Error duplicating file: {e}")
         else:
@@ -206,9 +206,10 @@ def rename_file_batch(directory: str, file_mappings: dict) -> None:
             except OSError as e:
                 print(f"Error renaming file: {e}")
 
+    print(f"Files to update links: {files_to_update_links}")
+
     # Update external links after all files have been renamed
     for file in files_to_update_links:
-        print(f"Remapping external links in file: {file}")
         try:
             external_link_wrapper(directory, file, file_mappings)
         except OSError as e:
