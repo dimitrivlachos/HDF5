@@ -125,7 +125,7 @@ def update_external_links(source: h5py.Group, target: h5py.Group, file_mappings:
 
 def duplicate_wrapper(directory: str, file: str, file_mappings: dict) -> None:
     """
-    Given an HDF5 file, returns the filenames of all external links.
+    Given an HDF5 file, duplicates it and stores it in the new file.
     
     Parameters
     ----------
