@@ -75,20 +75,22 @@ def duplicate_hdf5(source: h5py.Group, target: h5py.Group) -> None:
     # Recursively copy the objects from the source to the target
     def copy(name):
         print(f"Visiting {name}")
-        
+        # If the object is a dataset, copy it to the target
         if source.get(name, getclass=True) is h5py.Dataset:
             print(f"Copying {name} as dataset")
             target.copy(source[name], name)
             return
+        # If the object is a group, create it in the target
         elif source.get(name, getclass=True) is h5py.Group:
             if not isinstance(source[name], h5py.ExternalLink):
                 print(f"Creating group {name}")
                 target.create_group(name)
 
-                # Copy attributes
+                # Then copy attributes
                 for key, value in source[name].attrs.items():
                     target[name].attrs[key] = value
 
+    # Visit all objects in the source file and copy them to the target
     source.visit(copy)
 
 def update_external_links(source: h5py.Group, target: h5py.Group, file_mappings: dict) -> None:
@@ -97,12 +99,14 @@ def update_external_links(source: h5py.Group, target: h5py.Group, file_mappings:
     """
     def update_link(name):
         print(f"Visiting {name}")
+        # If the object is a dataset, skip it
         if source.get(name, getclass=True) is h5py.Dataset:
             print(f"Skipping {name} because it is a dataset")
             return
 
         # Manually walk through group to find external links
         group = source[name]
+        # For each key in the group, check if it is an external link
         for key in group:
             print(f"Checking {key} in {name}")
             link = group.get(key, getlink=True)
@@ -115,6 +119,7 @@ def update_external_links(source: h5py.Group, target: h5py.Group, file_mappings:
                     print(f"Creating external link to {new_filename} at {new_path}")
                     target[key] = h5py.ExternalLink(new_filename, new_path)
 
+    # Visit all objects in the source file and update the external links
     source.visit(update_link)
 
 
