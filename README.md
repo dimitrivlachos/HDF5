@@ -1,7 +1,7 @@
 # HDF5 utilities
 
 ## Requirements:
-- h5py: [https://www.h5py.org/]
+- h5py: https://www.h5py.org/
 
 ## h5_rename.py
 
