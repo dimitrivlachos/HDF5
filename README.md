@@ -1,24 +1,15 @@
-# HDF5
+# HDF5 utilities
 
-HDF5 utilities
+## Requirements:
+- h5py: [https://www.h5py.org/]
 
-> **NB: No dependecies required as of now**
-
-> To install dependencies you require mamba:
-Please refer to the [mamba installation guide](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) for instructions on how to install mamba.
-
-Install dependencies using
-`conda create --name <env> --file requirements.txt`
-
-Activate mamba virtual environment using: `mamba activate /path/to/ENV/`
-
-# h5_rename.py
+## h5_rename.py
 
 This script allows you to rename files in a directory that start with a specific prefix. It also updates the metadata of .h5 files to reflect the new filename prefix.
 
 > By default, files are copied to a new file with the new prefix and the original files are left untouched. You can also choose to remove the original files after renaming by using the `-rm` flag.
 
-## Usage
+### Usage
 
 1. Run the script using the following command:
 
