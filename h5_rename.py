@@ -155,7 +155,7 @@ if __name__ == "__main__":
         help="The new prefix to rename the files to", metavar="NEW_PREFIX"
         )
     parser.add_argument(
-        "--rm",
+        "-rm",
         help="Remove the old files after renaming",
         action="store_true"
         )
