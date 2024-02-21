@@ -16,17 +16,20 @@ Activate mamba virtual environment using: `mamba activate /path/to/ENV/`
 
 This script allows you to rename files in a directory that start with a specific prefix. It also updates the metadata of .h5 files to reflect the new filename prefix.
 
+> By default, files are copied to a new file with the new prefix and the original files are left untouched. You can also choose to remove the original files after renaming by using the `-rm` flag.
+
 ## Usage
 
 1. Run the script using the following command:
 
     `
-    python .\h5_rename.py [directory] [prefix] [new_prefix]
+    python .\h5_rename.py [-h] [-rm] [directory] [prefix] [new_prefix]
     `
 
     - `directory`: The directory to search for files.
     - `prefix`: The prefix to search for in the filenames.
     - `new_prefix`: The new prefix to rename the files to.
+    - `-rm`: Optional flag to remove the original files after renaming.
 
     Example usage:
 
