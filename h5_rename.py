@@ -1,6 +1,7 @@
-from argparse import ArgumentParser
-import h5py
 import os
+import shutil
+import h5py
+from argparse import ArgumentParser
 from typing import List
 
 def find_files_with_prefix(directory: str, prefix: str) -> List[str]:
@@ -94,14 +95,14 @@ def fix_external_links(directory: str, file_mappings: dict) -> None:
         with h5py.File(file_path, "r+") as f:
             search_and_replace(f, file_mappings)
 
-def batch_rename(directory: str, file_mappings: dict) -> None:
+def batch_copy(directory: str, file_mappings: dict) -> None:
     """
-    Rename a set of files in a directory.
+    Copy a set of files in a directory.
 
     Parameters
     ----------
     directory : str
-        The directory containing the files to rename.
+        The directory containing the files to copy.
 
     file_mappings : dict
         A dictionary containing the old file names as keys and the new file names as values.
@@ -110,7 +111,26 @@ def batch_rename(directory: str, file_mappings: dict) -> None:
         old_path = os.path.join(directory, old_name)
         new_path = os.path.join(directory, new_name)
         try:
-            os.rename(old_path, new_path)
+            shutil.copy2(old_path, new_path) # copy2() preserves metadata
+        except OSError as e:
+            print(f"Error: {e}")
+
+def batch_remove(directory: str, file_mappings: dict) -> None:
+    """
+    Remove a set of files in a directory.
+
+    Parameters
+    ----------
+    directory : str
+        The directory containing the files to remove.
+
+    file_mappings : dict
+        A dictionary containing the old file names as keys and the new file names as values.
+    """
+    for old_name in file_mappings.keys():
+        old_path = os.path.join(directory, old_name)
+        try:
+            os.remove(old_path)
         except OSError as e:
             print(f"Error: {e}")
 
@@ -133,6 +153,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "new_prefix", 
         help="The new prefix to rename the files to", metavar="NEW_PREFIX"
+        )
+    parser.add_argument(
+        "--rm",
+        help="Remove the old files after renaming",
+        action="store_true"
         )
     args = parser.parse_args()
 
@@ -162,9 +187,12 @@ if __name__ == "__main__":
     if confirm.lower() != 'n':
         print("Renaming files...")
         # Rename the files
-        batch_rename(directory, file_mappings)
+        batch_copy(directory, file_mappings)
         # Fix the external links
         fix_external_links(directory, file_mappings)
         print("Files renamed, links updated.")
+        if args.rm:
+            batch_remove(directory, file_mappings)
+            print("Old files removed.")
     else:
         print("Rename cancelled. Exiting..")
